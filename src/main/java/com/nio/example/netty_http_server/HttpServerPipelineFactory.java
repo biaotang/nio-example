@@ -2,7 +2,7 @@ package com.nio.example.netty_http_server;
 
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.DefaultChannelPipeline;
+import org.jboss.netty.channel.Channels;
 import org.jboss.netty.handler.codec.http.HttpContentCompressor;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
@@ -18,7 +18,7 @@ public class HttpServerPipelineFactory implements ChannelPipelineFactory {
 
 	@Override
 	public ChannelPipeline getPipeline() throws Exception {
-		ChannelPipeline pipeline = new DefaultChannelPipeline();
+		ChannelPipeline pipeline = Channels.pipeline();
 		
 		if (sslCtx != null) {
 			pipeline.addLast("ssl", sslCtx.newHandler());

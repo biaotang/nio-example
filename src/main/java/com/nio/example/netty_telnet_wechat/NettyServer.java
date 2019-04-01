@@ -6,7 +6,7 @@ import java.util.concurrent.Executors;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.DefaultChannelPipeline;
+import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.DelimiterBasedFrameDecoder;
 import org.jboss.netty.handler.codec.frame.Delimiters;
@@ -44,7 +44,7 @@ public class NettyServer {
 			
 			@Override
 			public ChannelPipeline getPipeline() throws Exception {
-				ChannelPipeline pipeline = new DefaultChannelPipeline();
+				ChannelPipeline pipeline = Channels.pipeline();
 				
 				if (sslCtx != null) {
 					pipeline.addLast("ssl", sslCtx.newHandler());
