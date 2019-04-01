@@ -19,13 +19,15 @@ import org.jboss.netty.handler.codec.http.CookieEncoder;
 import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
 import org.jboss.netty.handler.codec.http.HttpChunk;
 import org.jboss.netty.handler.codec.http.HttpChunkTrailer;
-import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
-import org.jboss.netty.handler.codec.http.HttpResponseStatus;
-import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.handler.codec.http.QueryStringDecoder;
 import org.jboss.netty.util.CharsetUtil;
+
+import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.*;
+import static org.jboss.netty.handler.codec.http.HttpHeaders.*;
+import static org.jboss.netty.handler.codec.http.HttpResponseStatus.*;
+import static org.jboss.netty.handler.codec.http.HttpVersion.*;
 
 public class HttpServerHandler extends SimpleChannelUpstreamHandler {
 
@@ -39,7 +41,7 @@ public class HttpServerHandler extends SimpleChannelUpstreamHandler {
 		if (!readingChunks) {
 			HttpRequest request = this.request = (HttpRequest) e.getMessage();
 			
-			if (HttpHeaders.is100ContinueExpected(request)) {
+			if (is100ContinueExpected(request)) {
 				send100Continue(e);
 			}
 			
@@ -48,7 +50,7 @@ public class HttpServerHandler extends SimpleChannelUpstreamHandler {
 			buf.append("===============================\r\n");
 			
 			buf.append("VERSION: " + request.getProtocolVersion() + "\r\n");
-			buf.append("HOST: " + request.headers().get("HOST") + "\r\n");
+			buf.append("HOST: " + getHost(request, "unknown") + "\r\n");
 			buf.append("REQUEST_URI: " + request.getUri() + "\r\n");
 			
 			for (Map.Entry<String, String> h : request.headers()) {
@@ -104,23 +106,23 @@ public class HttpServerHandler extends SimpleChannelUpstreamHandler {
 	
 	private void writeResponse(MessageEvent e) {
 		//Decide whether to close the connection or not
-		boolean keepAlive = request.headers().contains("KEEP_ALIVE");
+		boolean keepAlive = isKeepAlive(request);
 		
 		//Build the response object
-		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+		HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
 		response.setContent(ChannelBuffers.copiedBuffer(buf.toString(), CharsetUtil.UTF_8));
-		response.headers().set("Content-Type", "text/plain;charset=UTF-8");
+		response.headers().set(CONTENT_TYPE, "text/plain;charset=UTF-8");
 		
 		if (keepAlive) {
 			//Add 'Content-Length' header only for a keep-alive connection
-			response.headers().set("Content-Length", response.getContent().readableBytes());
+			response.headers().set(CONTENT_LENGTH, response.getContent().readableBytes());
 			//Add keep alive header as per:
 			// - http://www.w3.org/Protocols/HTTP/1.1/draft-ietf-http-v11-spec-01.html#Connection
-			response.headers().set("Connection", HttpHeaders.Values.KEEP_ALIVE);
+			response.headers().set(CONNECTION, Values.KEEP_ALIVE);
 		}
 		
 		// Encode the cookie
-		String cookieString = request.headers().get("COOKIE");
+		String cookieString = request.headers().get(COOKIE);
 		if (cookieString != null) {
 			CookieDecoder cookieDecoder = new CookieDecoder();
 			Set<Cookie> cookies = cookieDecoder.decode(cookieString);
@@ -129,16 +131,16 @@ public class HttpServerHandler extends SimpleChannelUpstreamHandler {
 				CookieEncoder cookieEncoder = new CookieEncoder(true);
 				for (Cookie cookie : cookies) {
 					cookieEncoder.addCookie(cookie);
-					response.headers().add("SET_COOKIE", cookieEncoder.encode());
+					response.headers().add(SET_COOKIE, cookieEncoder.encode());
 				}
 			}
 		} else {
 			//Browser sent no cookie. Add some
 			CookieEncoder cookieEncoder = new CookieEncoder(true);
 			cookieEncoder.addCookie("key1", "value1");
-			response.headers().add("SET_COOKIE", cookieEncoder.encode());
+			response.headers().add(SET_COOKIE, cookieEncoder.encode());
 			cookieEncoder.addCookie("key2", "value2");
-			response.headers().add("SET_COOKIE", cookieEncoder.encode());
+			response.headers().add(SET_COOKIE, cookieEncoder.encode());
 		}
 		
 		//write the response
@@ -151,7 +153,7 @@ public class HttpServerHandler extends SimpleChannelUpstreamHandler {
 	}
 	
 	public static void send100Continue(MessageEvent e) {
-		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+		HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
 		e.getChannel().write(response);
 	}
 	
